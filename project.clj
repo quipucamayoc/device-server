@@ -15,6 +15,7 @@
 
             :plugins [[lein-cljsbuild "1.0.6-SNAPSHOT"]
                       [lein-ancient "0.6.3"]
+                      [lein-cljfmt "0.1.10"]
                       [lein-marginalia "0.8.0"]
                       [lein-npm "0.5.0"]]
 

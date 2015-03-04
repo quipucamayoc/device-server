@@ -23,27 +23,27 @@
 
   (.set grid-left 0 0 1 1
         contrib.table
-        #js {:label "Connected Beans"
-             :fg "green"
+        #js {:label         "Connected Beans"
+             :fg            "green"
              :columnSpacing 16
-             :keys true})
+             :keys          true})
 
   (.set grid-left 1 0 1 1
         contrib.log
-        #js {:label "Event Log"
-             :fg "green"
+        #js {:label      "Event Log"
+             :fg         "green"
              :selectedFg "green"})
 
   (.set grid 0 1 1 1
         contrib.sparkline
         #js {:label "Sensor History"
-             :tags true
+             :tags  true
              :style #js {:fg "blue"}})
 
   (.set grid 1 1 1 1
         contrib.log
-        #js {:label "OSC Log"
-             :fg "green"
+        #js {:label      "OSC Log"
+             :fg         "green"
              :selectedFg "green"})
 
   (.set grid 0 0 1 2 grid-left)
@@ -62,7 +62,7 @@
   []
   (go-loop []
            (when-let [v (<! comm/log-chan)]
-             (log (:msg v)) ;; :msg contains the above :response
+             (log (:msg v))                                 ;; :msg contains the above :response
              (recur))))
 
 (defn- transform-for-dashboard [devices])
@@ -74,13 +74,13 @@
 
 (defn- init-data []
   (let [sensor-history (.get grid 0 1)
-        device-table   (.get grid-left 0 0)
+        device-table (.get grid-left 0 0)
         hist-header #js ["bean-a" "bean-b" "bean-c"]
         hist-data #js [#js [5 6 7 0]
                        #js [5 6 7 0]
                        #js [5 6 7 0]]
         table-data #js {:headers #js ["uuid" "x" "y" "z"]
-                        :data #js [ #js ["no-bean" 0 0 0]]}]
+                        :data    #js [#js ["no-bean" 0 0 0]]}]
     (.focus device-table)
     (.setData device-table table-data)
     (pass-> :log "Hello CLJS")

@@ -10,7 +10,7 @@
 
 (defonce config
          {:udpSock (.createSocket udp "udp4")
-          :inport 9800
+          :inport  9800
           :outport 9801})
 
 (def ip (atom "127.0.0.1"))
@@ -20,7 +20,7 @@
   (if (and (= (aget msg "address") "/my-addr") @once)
     (do (reset! ip (aget msg "args" 0 "value"))
         (pass-> :log "IP Set to: " (aget msg "args" 0 "value"))
-        (pass-> :log  msg)
+        (pass-> :log msg)
         (reset! once false))
     nil))
 

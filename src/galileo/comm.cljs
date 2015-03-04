@@ -9,14 +9,16 @@
 
 (defn pass-> [topic & args]
   (go (>! content-stream {:topic topic
-                          :msg args})))
+                          :msg   args})))
 
 (defonce watch-stream-for
          (pub content-stream #(:topic %)))
 
 (defonce osc-chan (chan (sliding-buffer 1024)))
 (defonce log-chan (chan (sliding-buffer 1024)))
+(defonce device-chan (chan (sliding-buffer 1024)))
 
 (defn begin-subscriptions []
   (sub watch-stream-for :osc osc-chan)
-  (sub watch-stream-for :log  log-chan))
+  (sub watch-stream-for :log log-chan)
+  (sub watch-stream-for :device device-chan))

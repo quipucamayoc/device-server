@@ -9,9 +9,9 @@
 (defonce noble
          (nodejs/require "noble"))
 
-(declare exit-handler)
+(declare exit-handler chain)
 
-(defonce bean-uuid "a495ff10c5b14b44b5121370f02d74de")
+(defonce bean-uuid   "a495ff10c5b14b44b5121370f02d74de")
 (defonce js-bean-uuid #js [bean-uuid])
 
 (defonce scratch-one "a495ff21c5b14b44b5121370f02d74de")
@@ -21,74 +21,34 @@
 (def peripherals (atom {}))
 (def exiting (atom false))
 
-(defn process-bean-data
-  "Sends data to osc/"
-  [raw axis bean-key]
-  (let [data (+ (bit-shift-left (aget raw 1) 8) (aget raw 0))]
-    (osc/send-data bean-key axis data)))
+(defn start-chain
+  "Listens for new steps on comm/device-chan." []
+  (go-loop []
+           (when-let [v (<! comm/device-chan)]
+             (chain (first (:msg v)))  ;; :msg contains the above :response
+             (recur))))
 
-(defn request-notify
-  "Noble.
-   Callback when bean responds."
-  [characteristic axis bean-key]
-  (.on characteristic "read" (fn [data _]
-                               (process-bean-data data axis bean-key)))
-  (.notify characteristic "true" (fn [error]
-                                   (if error
-                                     (pass-> :log "There was an Error in Scratch Data")
-                                     nil))))
+(defmulti chain
+          "
+This represents a chain of events that establishes and reads scratch
+characteristic data from the BLE devices.
 
-(defn setup-service
-  "Noble.
-   Finally begins characteristics data gathering."
-  [err services bean-key]
-  (if err
-    (js/throw err))
-  (.forEach services (fn [service]
-                       (if (= service.uuid bean-uuid)
-                         (pass-> :log "Discovering characteristics for" bean-key)
-                         (.discoverCharacteristics
-                             service
-                             #js [scratch-one scratch-two scratch-thr]
-                             (fn [error characteristics]
-                               (if error
-                                 (js/throw error))
-                               (when-not (empty? (js->clj characteristics))
-                                 (pass-> :log "Requesting characteristics for" bean-key)
-                                 (request-notify (aget characteristics 0) :x bean-key)
-                                 (request-notify (aget characteristics 1) :y bean-key)
-                                 (request-notify (aget characteristics 2) :z bean-key))))))))
+### The Chain:
 
-(defn discover-service
-  "Noble.
-   Callback fired when characteristics are discovered."
-  [item bean-key]
-  (pass-> :log "Descovering service for" bean-key)
-  (.discoverServices item #js [] (fn [err services]
-                                    (pass-> :log "Discovered service for" bean-key)
-                                    (setup-service err services bean-key))))
+1. `:discover` - Locates a BLE device.
+2. `:connect` - Connects to a valid device. By UUID.
+3. `:discover-service` - Discover device properties.
+4. `:setup-service` - Discover server characteristics.
+5. `:discovered-characteristics` - validate BLE device scratch data.
+6. `:request-notify` - Requests scratch data from device.
+7. `:process-device-data` - Sends BLE scratch data to OSC output.
 
-(defn connect
-  "Noble.
-   Callback fired when the connection is finalized.
-   Characteristics can be discovered."
-  [bean uuid advertisement]
-  (let [peripheral {(keyword uuid)
-                    (merge advertisement
-                           {:bean bean})}]
-    (swap! peripherals merge @peripherals peripheral)
-    ;; Current reconnect check, TO-DO: Enable connection to more than just the previously connected peripherals
-    (.on bean "disconnect" (fn [err] (when (false? @exiting)
-                                       (pass-> :log uuid "disconnected")
-                                       (.startScanning noble js-bean-uuid false))))
-    (js/setTimeout (fn []
-                     (discover-service bean (keyword uuid))
-                   12000))))
+          "
+          #(:step %))
 
-(defn discover
-  "Noble.
-   A callback fired when a peripheral is discovered."
-  [peripheral]
+(defmethod chain
+  :discover
+  [{:keys [peripheral]}]
   (let [advertisement (js->clj (.-advertisement peripheral) :keywordize-keys true)
         uuid (.-uuid peripheral)]
     (pass-> :log "Scanning" uuid)
@@ -97,29 +57,121 @@
       (.connect peripheral (fn [e]))
       (if-not ((keyword uuid) @peripherals)
         (.on peripheral "connect" (fn [e]
-                                    (connect peripheral uuid advertisement)))
+                                    (pass-> :device
+                                            {:step          :connect
+                                             :device        peripheral
+                                             :uuid          uuid
+                                             :advertisement advertisement})))
         (.stopScanning noble)))))
+
+(defmethod chain
+  :connect
+  [{:keys [device uuid advertisement]}]
+  (let [peripheral {(keyword uuid)
+                    (merge advertisement
+                           {:bean device})}]
+    (swap! peripherals merge @peripherals peripheral)
+    ;; Current reconnect check, TO-DO: Enable connection to more than just the previously connected peripherals
+    (.on device "disconnect" (fn [err] (when (false? @exiting)
+                                         (pass-> :log uuid "disconnected")
+                                         (.startScanning noble js-bean-uuid false))))
+    (js/setTimeout (fn []
+                     (pass-> :device
+                             {:step       :discover-service
+                              :device     device
+                              :device-key (keyword uuid)})
+                     12000))))
+
+(defmethod chain
+  :discover-service
+  [{:keys [device device-key]}]
+  (pass-> :log "Descovering service for" device-key)
+  (.discoverServices device #js [] (fn [err services]
+                                     (pass-> :log "Discovered service for" device-key)
+                                     (pass-> :device
+                                             {:step       :setup-service
+                                              :err        err
+                                              :services   services
+                                              :device-key device-key}))))
+
+(defmethod chain
+  :setup-service
+  [{:keys [err services device-key]}]
+  (if err
+    (js/throw err))
+  (.forEach services (fn [service]
+                       (if (= service.uuid bean-uuid)
+                         (pass-> :log "Discovering characteristics for" device-key)
+                         (.discoverCharacteristics
+                           service
+                           #js [scratch-one scratch-two scratch-thr]
+                           (fn [err characteristics]
+                             (pass-> :device
+                                     {:step            :discovered-characteristics
+                                      :err             err
+                                      :characteristics characteristics
+                                      :device-key      device-key})))))))
+
+(defmethod chain
+  :discovered-characteristics
+  [{:keys [err characteristics device-key]}]
+  (if err
+    (js/throw err))
+  (when-not (empty? (js->clj characteristics))
+    (pass-> :log "Requesting characteristics for" device-key)
+    (pass-> :device
+            {:step           :request-notify
+             :characteristic (aget characteristics 0)
+             :axis           :x
+             :device-key     device-key})
+    (pass-> :device
+            {:step           :request-notify
+             :characteristic (aget characteristics 1)
+             :axis           :y
+             :device-key     device-key})
+    (pass-> :device
+            {:step           :request-notify
+             :characteristic (aget characteristics 2)
+             :axis           :z
+             :device-key     device-key})))
+
+(defmethod chain
+  :request-notify
+  [{:keys [characteristic axis device-key]}]
+  (.on characteristic "read" (fn [raw _]
+                               (pass-> :device
+                                       {:step       :process-device-data
+                                        :raw        raw
+                                        :axis       axis
+                                        :device-key device-key})))
+  (.notify characteristic "true" (fn [error]
+                                   (if error
+                                     (pass-> :log "There was an Error in Scratch Data")
+                                     nil))))
+
+(defmethod chain
+  :process-device-data
+  [{:keys [raw axis device-key]}]
+  (let [data (+ (bit-shift-left (aget raw 1) 8) (aget raw 0))]
+    (osc/send-data device-key axis data)))
+
 
 (defn -main
   "As of CLJS 2850 this is the main entrypoint"
   []
-  ; Start Internal Communications
   (comm/begin-subscriptions)
-  ; Starts the dashboard visualization.
+  (start-chain)
   (dash/start)
-  ; Provides a separate termination handler, to disconnect from the devices.
   (.key dash/screen #js ["escape", "q", "C-c"] exit-handler)
-  ; Begins OSC Communication
   (osc/init-osc)
-  ; Begins the scan process for surrounding BLE devices. Based on the UUID.
   (.startScanning noble js-bean-uuid false)
-  ; Stops scanning after a set time. TO-DO: replace
-  (js/setTimeout (fn []
+  (js/setTimeout (fn [] ; Stops scanning after a set time. TO-DO: replace
                    (pass-> :log "Stopped Scanning")
                    (.stopScanning noble))
                  5000)
   ; Once any device is discovered, fire discover.
-  (.on noble "discover" discover))
+  (.on noble "discover" #(pass-> :device {:step       :discover
+                                          :peripheral %})))
 
 (defn exit-handler
   "Cleanly disconnects from the beans before terminating the node process."
