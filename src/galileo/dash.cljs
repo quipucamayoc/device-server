@@ -50,44 +50,74 @@
 
   (.applyLayout grid screen))
 
-(defn log
+(defn prog-log
   "Prints data from the program into the dashboard."
   [& args]
   (let [event-log (.get grid-left 1 0)
         entry (apply str args)]
     (.log event-log entry)))
 
-(defn start-log
+(defn osc-log
+  "Prints what is sent via OSC into the dashboard."
+  [& args]
+  (let [event-log (.get grid 1 1)
+        entry (apply str args)]
+    (.log event-log entry)))
+
+(defn start-osc-log
+  "Listens for new messages on comm/osc-chan."
+  []
+  (go-loop []
+           (when-let [v (<! comm/osc-chan)]
+             (osc-log (:msg v))                             ;; :msg contains the above :response
+             (recur))))
+
+(defn start-prog-log
   "Listens for new messages on comm/log-chan."
   []
   (go-loop []
            (when-let [v (<! comm/log-chan)]
-             (log (:msg v))                                 ;; :msg contains the above :response
+             (prog-log (:msg v))                            ;; :msg contains the above :response
              (recur))))
 
-(defn- transform-for-dashboard [devices])
+(defn build-history [[_ {:keys [localName sensors]}]]
+  (let [{x :x y :y z :z} sensors]
+    (into [] x)))
 
-(defn update-device-table [devices]
-  (let [device-table (.get grid-left 0 0)]
-    (->> (transform-for-dashboard devices)
-         (.setData device-table))))
+(defn build-table [[_ {:keys [localName sensors]}]]
+  (let [{x :x y :y z :z} sensors]
+    (conj [] localName (last x) (last y) (last z))))
+
+(defn update-graphs [peripherals]
+  (let [sensor-history (.get grid 0 1)
+        hist-header #js ["bean-a" "bean-b" "bean-c"]
+        device-table   (.get grid-left 0 0)]
+    (.setData device-table
+              (clj->js {:headers ["name" "x" "y" "z"]
+                        :data    (do
+                                   (pass-> :log (first (mapv build-table peripherals)))
+                                   (conj [] (mapv build-table peripherals)))}))
+    #_(.setData sensor-history hist-header
+              (clj->js [(mapv build-history peripherals)]))))
 
 (defn- init-data []
   (let [sensor-history (.get grid 0 1)
         device-table (.get grid-left 0 0)
         hist-header #js ["bean-a" "bean-b" "bean-c"]
-        hist-data #js [#js [5 6 7 0]
-                       #js [5 6 7 0]
-                       #js [5 6 7 0]]
-        table-data #js {:headers #js ["uuid" "x" "y" "z"]
-                        :data    #js [#js ["no-bean" 0 0 0]]}]
+        hist-data (clj->js
+                    [[5 6 7 0]
+                     [5 6 7 0]
+                     [5 6 7 0]])
+        table-data (clj->js
+                     {:headers ["name" "x" "y" "z"]
+                      :data    [["no-beans" 0 0 0]]})]
     (.focus device-table)
     (.setData device-table table-data)
-    (pass-> :log "Hello CLJS")
     (.setData sensor-history hist-header hist-data)))
 
 (defn start []
   (create-layout)
-  (start-log)
+  (start-prog-log)
+  (start-osc-log)
   (init-data)
   (.render screen))

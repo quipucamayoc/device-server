@@ -149,10 +149,18 @@ characteristic data from the BLE devices.
                                      (pass-> :log "There was an Error in Scratch Data")
                                      nil))))
 
+(defn sensor-history [prev curr]
+  (if (vector? prev)
+      (if (>= (count prev) 10)
+        (conj (subvec prev 1) curr)
+        (conj prev curr))
+      [curr]))
+
 (defmethod chain
   :process-device-data
   [{:keys [raw axis device-key]}]
   (let [data (+ (bit-shift-left (aget raw 1) 8) (aget raw 0))]
+    (swap! peripherals #(update-in % [device-key :sensors axis] (fn [prev] (sensor-history prev data))))
     (osc/send-data device-key axis data)))
 
 
@@ -171,7 +179,10 @@ characteristic data from the BLE devices.
                  5000)
   ; Once any device is discovered, fire discover.
   (.on noble "discover" #(pass-> :device {:step       :discover
-                                          :peripheral %})))
+                                          :peripheral %}))
+  (js/setInterval (fn []
+                    (dash/update-graphs @peripherals))
+                  200))
 
 (defn exit-handler
   "Cleanly disconnects from the beans before terminating the node process."

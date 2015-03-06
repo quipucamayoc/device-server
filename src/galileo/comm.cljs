@@ -1,6 +1,5 @@
 (ns galileo.comm
-  (:require [cljs.nodejs :as nodejs]
-            [cljs.core.async
+  (:require [cljs.core.async
              :as a
              :refer [sub chan pub <! >! sliding-buffer]])
   (:require-macros [cljs.core.async.macros :refer [go]]))

@@ -28,6 +28,7 @@
   (let [wrt (clj->js {:address "/beans" :args [bean-key axis data]})
         buf (.toBuffer osc wrt)
         sock (:udpSock config)]
+    (pass-> :osc axis data)
     (.send sock buf 0 buf.length (:outport config) @ip)))
 
 (defn init-osc []
