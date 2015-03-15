@@ -4,17 +4,17 @@
             :url "http://quipucamayoc.com/"
 
             :dependencies [[org.clojure/clojure "1.7.0-alpha5"]
-                           [org.clojure/clojurescript "0.0-2985"]
+                           [org.clojure/clojurescript "0.0-3058"]
                            [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
 
             :node-dependencies [[source-map-support "0.2.9"]
                                 [osc-min "0.2.0"]
-                                [noble "0.3.9"]
+                                [noble "0.3.10"]
                                 [blessed "0.0.49"]
-                                [blessed-contrib "1.0.9"]]
+                                [blessed-contrib "1.0.10"]]
 
             :plugins [[lein-cljsbuild "1.0.6-SNAPSHOT"]
-                      [lein-ancient "0.6.4"]
+                      [lein-ancient "0.6.5"]
                       [lein-cljfmt "0.1.10"]
                       [lein-marginalia "0.8.0"]
                       [lein-npm "0.5.0"]]

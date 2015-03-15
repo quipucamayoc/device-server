@@ -1,7 +1,8 @@
 (ns galileo.dash
   (:require [cljs.nodejs :as nodejs]
             [galileo.comm :as comm :refer [pass->]]
-            [cljs.core.async :as a :refer [<!]])
+            [cljs.core.async :as a :refer [<!]]
+            [goog.object :as o])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
 (defonce blessed
@@ -42,7 +43,8 @@
 
   (.set grid 1 1 1 1
         contrib.log
-        #js {:label      "OSC Log"
+        #js {:style #js {:text "green"}
+             :label      "OSC Log"
              :fg         "green"
              :selectedFg "green"})
 
@@ -80,37 +82,68 @@
              (prog-log (:msg v))                            ;; :msg contains the above :response
              (recur))))
 
-(defn build-history [[_ {:keys [localName sensors]}]]
-  (let [{x :x y :y z :z} sensors]
-    (into [] x)))
+(defn clean-axis [axis]
+    (if (nil? axis)
+      [0]
+      axis))
 
-(defn build-table [[_ {:keys [localName sensors]}]]
+(defn device-history-data
+  "Takes a device map and returns axis data. Todo, return all sensors agnostically."
+  [[_ {:keys [sensors]}]]
   (let [{x :x y :y z :z} sensors]
-    (conj [] localName (last x) (last y) (last z))))
+    [(clean-axis x) (clean-axis y) (clean-axis z)]))
 
-(defn update-graphs [peripherals]
+(defn device-history-names
+  "Merges device UUIDs and sensor names."
+  [peripherals]
+  (apply concat
+         (map (fn [device-key]
+                (map #(str device-key "-" %)
+                     (keys (:sensors (device-key peripherals)))))
+              (keys peripherals))))
+
+(defn clean-last-axis [axis]
+  (let [last-axis (last axis)]
+    (if (nil? last-axis)
+      0
+      last-axis)))
+
+(defn build-row
+  "Returns a row containing only latest sensor values from device. TO-DO: Remove hardcoded sensors"
+  [[_ {:keys [localName sensors]}]]
+  (let [{x :x y :y z :z} sensors]
+    [(str localName) (clean-last-axis x) (clean-last-axis y) (clean-last-axis z)]))
+
+(defn update-graphs
+  "Updates the gaphics that represent real-time & over-time device status and sensor values."
+  [peripherals]
   (let [sensor-history (.get grid 0 1)
-        hist-header #js ["bean-a" "bean-b" "bean-c"]
-        device-table   (.get grid-left 0 0)]
+        hist-header (device-history-names peripherals)
+        hist-data (mapv vec (apply concat (map device-history-data peripherals)))
+        device-table (.get grid-left 0 0)
+        device-table-data (mapv build-row peripherals)]
+
+    ; Update list of devices and sensor values.
     (.setData device-table
               (clj->js {:headers ["name" "x" "y" "z"]
-                        :data    (do
-                                   (pass-> :log (first (mapv build-table peripherals)))
-                                   (conj [] (mapv build-table peripherals)))}))
-    #_(.setData sensor-history hist-header
-              (clj->js [(mapv build-history peripherals)]))))
+                        :data    device-table-data}))
+    ; Update sparkline of sensor values.
+    (.setData sensor-history
+              (clj->js hist-header)
+              (clj->js hist-data))
+    ; Needed to update the screen when graphics change.
+    (.render screen)))
 
-(defn- init-data []
+(defn- init-data
+  "Starts the Dashboard." []
   (let [sensor-history (.get grid 0 1)
         device-table (.get grid-left 0 0)
-        hist-header #js ["bean-a" "bean-b" "bean-c"]
+        hist-header (clj->js [""])
         hist-data (clj->js
-                    [[5 6 7 0]
-                     [5 6 7 0]
-                     [5 6 7 0]])
+                    [[]])
         table-data (clj->js
                      {:headers ["name" "x" "y" "z"]
-                      :data    [["no-beans" 0 0 0]]})]
+                      :data    [["no-devices" 0 0 0]]})]
     (.focus device-table)
     (.setData device-table table-data)
     (.setData sensor-history hist-header hist-data)))

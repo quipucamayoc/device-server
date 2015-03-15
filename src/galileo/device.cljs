@@ -3,6 +3,7 @@
             [galileo.comm :as comm :refer [pass->]]
             [galileo.osc :as osc]
             [galileo.dash :as dash]
+            [galileo.sample :as sample]
             [cljs.core.async :as a :refer [<!]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
@@ -139,11 +140,12 @@ characteristic data from the BLE devices.
   :request-notify
   [{:keys [characteristic axis device-key]}]
   (.on characteristic "read" (fn [raw _]
+                               (let [data (+ (bit-shift-left (aget raw 1) 8) (aget raw 0))]
                                (pass-> :device
-                                       {:step       :process-device-data
-                                        :raw        raw
+                                       {:step       :pass-device-data
+                                        :data        data
                                         :axis       axis
-                                        :device-key device-key})))
+                                        :device-key device-key}))))
   (.notify characteristic "true" (fn [error]
                                    (if error
                                      (pass-> :log "There was an Error in Scratch Data")
@@ -151,35 +153,38 @@ characteristic data from the BLE devices.
 
 (defn sensor-history [prev curr]
   (if (vector? prev)
-      (if (>= (count prev) 10)
+      (if (>= (count prev) 50)
         (conj (subvec prev 1) curr)
         (conj prev curr))
       [curr]))
 
 (defmethod chain
-  :process-device-data
-  [{:keys [raw axis device-key]}]
-  (let [data (+ (bit-shift-left (aget raw 1) 8) (aget raw 0))]
+  :pass-device-data
+  [{:keys [data axis device-key]}]
     (swap! peripherals #(update-in % [device-key :sensors axis] (fn [prev] (sensor-history prev data))))
-    (osc/send-data device-key axis data)))
+    (osc/send-data device-key axis data))
 
 
-(defn -main
+(defn main
   "As of CLJS 2850 this is the main entrypoint"
-  []
+  [& args]
   (comm/begin-subscriptions)
   (start-chain)
   (dash/start)
   (.key dash/screen #js ["escape", "q", "C-c"] exit-handler)
   (osc/init-osc)
-  (.startScanning noble js-bean-uuid false)
-  (js/setTimeout (fn [] ; Stops scanning after a set time. TO-DO: replace
+
+  #_(.startScanning noble js-bean-uuid false)
+  #_(js/setTimeout (fn [] ; Stops scanning after a set time. TO-DO: replace
                    (pass-> :log "Stopped Scanning")
                    (.stopScanning noble))
                  5000)
   ; Once any device is discovered, fire discover.
-  (.on noble "discover" #(pass-> :device {:step       :discover
+  #_(.on noble "discover" #(pass-> :device {:step       :discover
                                           :peripheral %}))
+
+  (sample/start [:device1 :device2 :device3])
+
   (js/setInterval (fn []
                     (dash/update-graphs @peripherals))
                   200))
@@ -199,4 +204,4 @@ characteristic data from the BLE devices.
                    (.exit js/process))
                  2000))
 
-(set! *main-cli-fn* -main)
+(set! *main-cli-fn* main)
