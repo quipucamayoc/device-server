@@ -1,4 +1,7 @@
 (ns galileo.dash
+  "An in-terminal dashboard for simple device monitoring.
+
+  Uses the blessed and blessed-contrib libraries for node."
   (:require [cljs.nodejs :as nodejs]
             [galileo.comm :as comm :refer [pass->]]
             [cljs.core.async :as a :refer [<!]]
@@ -35,13 +38,13 @@
              :fg         "green"
              :selectedFg "green"})
 
-  (.set grid 0 1 1 1
+  (.set grid 0 1 1 2
         contrib.sparkline
         #js {:label "Sensor History"
              :tags  true
              :style #js {:fg "blue"}})
 
-  (.set grid 1 1 1 1
+  (comment .set grid 1 1 1 1
         contrib.log
         #js {:style #js {:text "green"}
              :label      "OSC Log"
@@ -64,14 +67,14 @@
   [& args]
   (let [event-log (.get grid 1 1)
         entry (apply str args)]
-    (.log event-log entry)))
+    #_(.log event-log entry)))
 
 (defn start-osc-log
   "Listens for new messages on comm/osc-chan."
   []
   (go-loop []
            (when-let [v (<! comm/osc-chan)]
-             (osc-log (:msg v))                             ;; :msg contains the above :response
+             (comment osc-log (:msg v))                             ;; :msg contains the above :response
              (recur))))
 
 (defn start-prog-log

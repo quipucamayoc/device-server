@@ -1,17 +1,17 @@
 (defproject device-server "0.2.8"
-            :description "The central communication node between wearable devices
+            :description "The central communication node between wearable devices and
   the rest of the project."
             :url "http://quipucamayoc.com/"
 
             :dependencies [[org.clojure/clojure "1.7.0-alpha5"]
-                           [org.clojure/clojurescript "0.0-3058"]
+                           [org.clojure/clojurescript "0.0-3117"]
                            [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
 
             :node-dependencies [[source-map-support "0.2.9"]
                                 [osc-min "0.2.0"]
                                 [noble "0.3.10"]
                                 [blessed "0.0.49"]
-                                [blessed-contrib "1.0.10"]]
+                                [blessed-contrib "1.0.11"]]
 
             :plugins [[lein-cljsbuild "1.0.6-SNAPSHOT"]
                       [lein-ancient "0.6.5"]
