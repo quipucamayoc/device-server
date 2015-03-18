@@ -23,7 +23,7 @@ Although this is tightly coupled to the rest of the project you can run a quick 
 
 ```sh
 lein cljsbuild once core
-node run/connect.js
+node run/connect.js sample
 ```
 
 Useful just to see the dashboard operation.
