@@ -85,10 +85,19 @@
              (prog-log (:msg v))                            ;; :msg contains the above :response
              (recur))))
 
+(defn readable-device-key
+  "Takes the device UUID and displays just the first four characters."
+  [device-key]
+  (->> device-key
+       name
+       (take 4)
+       (apply str)))
+
 (defn clean-axis [axis]
-    (if (nil? axis)
-      [0]
-      axis))
+  (concat [350 0]
+          (if (nil? axis)
+            [0]
+            axis)))
 
 (defn device-history-data
   "Takes a device map and returns axis data. Todo, return all sensors agnostically."
@@ -101,7 +110,7 @@
   [peripherals]
   (apply concat
          (map (fn [device-key]
-                (map #(str device-key "-" %)
+                (map #(str ":  " (readable-device-key device-key) " { " (name %) " }  ")
                      (keys (:sensors (device-key peripherals)))))
               (keys peripherals))))
 

@@ -2,6 +2,8 @@
             :description "The central communication node between wearable devices and
   the rest of the project."
             :url "http://quipucamayoc.com/"
+            :license {:name "Eclipse Public License"
+                      :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
             :dependencies [[org.clojure/clojure "1.7.0-alpha5"]
                            [org.clojure/clojurescript "0.0-3117"]
@@ -26,7 +28,7 @@
             :clean-targets ["run/out/connect" "run/connect.js" "run/connect.js.map"]
 
             :cljsbuild {
-                        :builds [{:id           "galileo"
+                        :builds [{:id           "core"
                                   :source-paths ["src"]
                                   :compiler     {:source-map    "run/connect.js.map"
                                                  :output-to     "run/connect.js"

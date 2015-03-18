@@ -160,7 +160,7 @@ characteristic data from the BLE devices.
 
 (defn sensor-history [prev curr]
   (if (vector? prev)
-    (if (>= (count prev) 50)
+    (if (>= (count prev) 60)
       (conj (subvec prev 1) curr)
       (conj prev curr))
     [curr]))
@@ -208,7 +208,7 @@ characteristic data from the BLE devices.
     (sample/start [:device1 :device2 :device3] 100 100)
     (init-with-devices 12000))
 
-  (start-dashboard-updates 200))
+  (start-dashboard-updates 100))
 
 (defn exit-handler
   "Cleanly disconnects from the beans before terminating the node process."
