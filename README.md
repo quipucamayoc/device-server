@@ -2,18 +2,18 @@
 
 ClojureScript codebase that utilizes Noble to interact with BLE Wearables.
 
-# Core project details
+## Core project details
 
 Visit the [Quipucamayoc](http://quipucamayoc.com/) website for further details and latest information.
 
-# Requirements
+## Requirements
 
 Current primary build tool: Leiningen.
 
-Clojure: 1.6+
+Clojure: 1.6 (1.7-alpha6 or higher recommended)<br>
 ClojureScript: Latest
 
-## Node/iojs dependencies
+### Node/iojs dependencies
 
 Can be installed with `lein`:
 
@@ -30,13 +30,14 @@ Replace `iojs-v1.6.4` with your desired node/iojs version.
 
 ``sh
 lein npm install
-``sh
+``
 
-# Documentation
+
+## Documentation
 
 Run `lein marg -d doc/ -f index.html` to generate the documentation.
 
-# Running
+## Running
 
 If you have the BLE devices ready and turned on you can simply run:
 
@@ -54,14 +55,14 @@ node run/connect.js sample
 
 Note: if using `nvm` run `nvm install iojs-v1.6.4` before running.
 
-### Dashboard
+## Dashboard
 
 Has been moved to the [dashboard repository](https://github.com/quipucamayoc/dashboard).
 
-# Copyright
-
-©2015 [Boris Kourtoukov](http://boris.kourtoukov.com/) & [Ayllu Intiwatana Team](http://quipucamayoc.com/)
-
-# License
+## License
 
 See `LICENSE` in root of repository.
+
+## Copyright
+
+©2015 [Boris Kourtoukov](http://boris.kourtoukov.com/) & [Ayllu Intiwatana Team](http://quipucamayoc.com/)
