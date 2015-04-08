@@ -5,18 +5,18 @@
             :license {:name "Eclipse Public License"
                       :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
-            :dependencies [[org.clojure/clojure "1.7.0-alpha5"]
-                           [org.clojure/clojurescript "0.0-3117"]
+            :dependencies [[org.clojure/clojure "1.7.0-alpha6"]
+                           [org.clojure/clojurescript "0.0-3178"]
                            [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
 
-            :node-dependencies [[source-map-support "0.2.9"]
+            :node-dependencies [[source-map-support "0.2.10"]
                                 [osc-min "0.2.0"]
-                                [noble "0.3.10"]
-                                [blessed "0.0.49"]
-                                [blessed-contrib "1.0.11"]]
+                                [noble "0.3.11"]
+                                [blessed "0.0.51"]
+                                [blessed-contrib "2.0.2"]]
 
             :plugins [[lein-cljsbuild "1.0.6-SNAPSHOT"]
-                      [lein-ancient "0.6.5"]
+                      [lein-ancient "0.6.6"]
                       [lein-cljfmt "0.1.10"]
                       [lein-marginalia "0.8.0"]
                       [lein-npm "0.5.0"]]
@@ -25,7 +25,7 @@
 
             :main "run/out/connect.js"
 
-            :clean-targets ["run/out/connect" "run/connect.js" "run/connect.js.map"]
+            :clean-targets ["run/out" "run/connect.js" "run/connect.js.map"]
 
             :cljsbuild {
                         :builds [{:id           "core"

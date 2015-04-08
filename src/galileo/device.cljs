@@ -152,7 +152,7 @@ characteristic data from the BLE devices.
                     :axis       axis
                     :device-key device-key}))))
   (.notify characteristic
-           "true"
+           true
            (fn [error]
              (if error
                (pass-> :log "There was an Error in Scratch Data")
