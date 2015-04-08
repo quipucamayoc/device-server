@@ -1,4 +1,4 @@
-(defproject device-server "0.2.8"
+(defproject device-server "1.0.0"
             :description "The central communication node between wearable devices and
   the rest of the project."
             :url "http://quipucamayoc.com/"
@@ -11,9 +11,7 @@
 
             :node-dependencies [[source-map-support "0.2.10"]
                                 [osc-min "0.2.0"]
-                                [noble "0.3.11"]
-                                [blessed "0.0.51"]
-                                [blessed-contrib "2.0.2"]]
+                                [noble "0.3.11"]]
 
             :plugins [[lein-cljsbuild "1.0.6-SNAPSHOT"]
                       [lein-ancient "0.6.6"]
@@ -35,7 +33,5 @@
                                                  :output-dir    "run/out"
                                                  :target        :nodejs
                                                  :optimizations :none
-                                                 :language-in  :ecmascript5-strict
-                                                 :language-out :ecmascript5-strict
                                                  :main          galileo.device
                                                  :pretty-print  true}}]})

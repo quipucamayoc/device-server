@@ -17,24 +17,27 @@
 (defonce log-chan (chan (sliding-buffer 1024)))
 (defonce device-chan (chan (sliding-buffer 1024)))
 
-(defn begin-subscriptions []
-  (sub watch-stream-for :osc osc-chan)
-  (sub watch-stream-for :log log-chan)
-  (sub watch-stream-for :device device-chan))
-
-
 (defn start-osc-log
-  "Listens for new messages on comm/osc-chan."
+  "Listens for new messages on osc-chan."
   []
   (go-loop []
            (when-let [v (<! osc-chan)]
-             (comment .log js/console (:msg v))
+             (comment .log js/console (str (:msg v)))
              (recur))))
 
 (defn start-prog-log
-  "Listens for new messages on comm/log-chan."
+  "Listens for new messages on log-chan."
   []
   (go-loop []
            (when-let [v (<! log-chan)]
-             (.log js/console (:msg v))
+             (.log js/console (str (:msg v)))
              (recur))))
+
+(defn begin-subscriptions []
+  (sub watch-stream-for :osc osc-chan)
+  (sub watch-stream-for :log log-chan)
+  (sub watch-stream-for :device device-chan)
+  (start-osc-log)
+  (start-prog-log))
+
+

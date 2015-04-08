@@ -5,7 +5,6 @@
   (:require [cljs.nodejs :as nodejs]
             [galileo.comm :as comm :refer [pass->]]
             [galileo.osc :as osc]
-            [galileo.dash :as dash]
             [galileo.sample :as sample]
             [cljs.core.async :as a :refer [<!]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
@@ -173,7 +172,8 @@ characteristic data from the BLE devices.
 (defn init-with-devices
   "When not running on sample data begins scanning for BLE Devices using node/noble"
   [scan-timeout]
-  (pass-> :log "Starting with Devices")
+  (pass-> :log "Starting with Devices, binding exit handler.")
+  (.on js/process "SIGINT" exit-handler)
 
   (.startScanning noble js-bean-uuid false)
 
@@ -185,13 +185,6 @@ characteristic data from the BLE devices.
   (.on noble "discover" #(pass-> :device {:step       :discover ; Once any device is discovered, pass it to channel.
                                           :peripheral %})))
 
-(defn start-dashboard-updates
-  "In order to overcome the near-random flood of data from the BLE devices,
-   this updates the dashboard graphs at a set interval."
-  [interval]
-  (js/setInterval (fn []
-                    (dash/update-graphs @peripherals))
-                  interval))
 
 (defn main
   "As of CLJS 2850 this is the main entrypoint"
@@ -199,16 +192,13 @@ characteristic data from the BLE devices.
 
   (comm/begin-subscriptions)
   (start-chain)
-  (dash/start)
-  (.key dash/screen #js ["escape", "q", "C-c"] exit-handler)
+  ;; Find out how to bind exit handler.
   (osc/init-osc)
 
   "If this is a sample run, don't start a Noble BLE scan."
   (if (some #(= "sample" %) args)
     (sample/start [:device1 :device2 :device3] 100 100)
-    (init-with-devices 12000))
-
-  (start-dashboard-updates 100))
+    (init-with-devices 12000)))
 
 (defn exit-handler
   "Cleanly disconnects from the beans before terminating the node process."

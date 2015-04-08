@@ -13,20 +13,50 @@ Current primary build tool: Leiningen.
 Clojure: 1.6+
 ClojureScript: Latest
 
+## Node/iojs dependencies
+
+Can be installed with `lein`:
+
+**If using `nvm`:**
+
+```sh
+nvm install iojs-v1.6.4
+lein npm install
+```
+
+Replace `iojs-v1.6.4` with your desired node/iojs version.
+
+**If using system node:**
+
+``sh
+lein npm install
+``sh
+
 # Documentation
 
 Run `lein marg -d doc/ -f index.html` to generate the documentation.
 
 # Running
 
-Although this is tightly coupled to the rest of the project you can run a quick demo setup (no BLE devices needed) via:
+If you have the BLE devices ready and turned on you can simply run:
+
+```sh
+lein cljsbuild once core
+node run/connect.js
+```
+
+Can also be started in demo (device free) mode by:
 
 ```sh
 lein cljsbuild once core
 node run/connect.js sample
 ```
 
-Useful just to see the dashboard operation.
+Note: if using `nvm` run `nvm install iojs-v1.6.4` before running.
+
+### Dashboard
+
+Has been moved to the [dashboard repository](https://github.com/quipucamayoc/dashboard).
 
 # Copyright
 
