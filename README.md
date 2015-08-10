@@ -43,14 +43,14 @@ If you have the BLE devices ready and turned on you can simply run:
 
 ```sh
 lein cljsbuild once core
-node run/connect.js
+node connect.js
 ```
 
 Can also be started in demo (device free) mode by:
 
 ```sh
 lein cljsbuild once core
-node run/connect.js sample
+node connect.js sample
 ```
 
 Note: if using `nvm` run `nvm install iojs-v1.6.4` before running.

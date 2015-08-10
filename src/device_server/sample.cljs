@@ -1,5 +1,5 @@
-(ns galileo.sample
-  (:require [galileo.comm :as comm :refer [pass->]]))
+(ns device-server.sample
+  (:require [device-server.comm :as comm :refer [pass->]]))
 
 (defn sample-run
   "Allows for device-less testing.

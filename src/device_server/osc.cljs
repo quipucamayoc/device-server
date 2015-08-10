@@ -1,6 +1,6 @@
-(ns galileo.osc
+(ns device-server.osc
   (:require [cljs.nodejs :as nodejs]
-            [galileo.comm :as comm :refer [pass->]]))
+            [device-server.comm :as comm :refer [pass->]]))
 
 (defonce osc
          (nodejs/require "osc-min"))
@@ -24,8 +24,8 @@
         (reset! once false))
     nil))
 
-(defn send-data [bean-key axis data]
-  (let [wrt (clj->js {:address "/beans" :args [bean-key axis data]})
+(defn send-data [bean-key number data]
+  (let [wrt (clj->js {:address "/beans" :args [bean-key number data]})
         buf (.toBuffer osc wrt)
         sock (:udpSock config)]
     (.send sock buf 0 buf.length (:outport config) @ip)))
@@ -36,7 +36,7 @@
                             (try
                               (establish-server (.fromBuffer osc msg))
                               (catch js/Error e
-                                (pass-> :log "Invlaid Packet")
+                                (pass-> :log "Invlaid Packet in UDP")
                                 (pass-> :log e)))))]
     (.bind sock (:inport config))))
 

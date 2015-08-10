@@ -1,4 +1,4 @@
-(ns galileo.comm
+(ns device-server.comm
   (:require [cljs.core.async
              :as a
              :refer [sub chan pub <! >! sliding-buffer]])

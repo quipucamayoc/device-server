@@ -8,9 +8,11 @@ pom.xml
 .lein-repl-history
 .lein-plugins/
 sftp-config.json
+checkouts
 doc
 node_modules
 run
 *.iml
 .idea
-.swp
+*.swp
+*.log

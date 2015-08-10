@@ -1,11 +1,11 @@
-(ns galileo.device
+(ns device-server.device
   "### Primary Namespace
 
-  Uses the node/iojs [Noble](https://github.com/sandeepmistry/nobl) library to interface with BLE peripherals."
+  Uses the node/iojs [Noble](https://github.com/sandeepmistry/noble) library to interface with BLE peripherals."
   (:require [cljs.nodejs :as nodejs]
-            [galileo.comm :as comm :refer [pass->]]
-            [galileo.osc :as osc]
-            [galileo.sample :as sample]
+            [device-server.comm :as comm :refer [pass->]]
+            [device-server.osc :as osc]
+            [device-server.sample :as sample]
             [cljs.core.async :as a :refer [<!]])
   (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
@@ -17,9 +17,11 @@
 (defonce bean-uuid "a495ff10c5b14b44b5121370f02d74de")
 (defonce js-bean-uuid #js [bean-uuid])
 
-(defonce scratch-one "a495ff21c5b14b44b5121370f02d74de") ;; The three BLE scratch characteristics for Light Blue Beans
+(defonce scratch-one "a495ff21c5b14b44b5121370f02d74de") ;; The 'five' BLE scratch characteristics for Light Blue Beans
 (defonce scratch-two "a495ff22c5b14b44b5121370f02d74de")
 (defonce scratch-thr "a495ff23c5b14b44b5121370f02d74de")
+(defonce scratch-fou "a495ff24c5b14b44b5121370f02d74de")
+(defonce scratch-fiv "a495ff25c5b14b44b5121370f02d74de")
 
 (def peripherals (atom {}))
 (def exiting (atom false)) ;; TO-DO consider a non-global-state solution.
@@ -54,7 +56,7 @@ characteristic data from the BLE devices.
   (let [advertisement (js->clj (.-advertisement peripheral) :keywordize-keys true)
         uuid (.-uuid peripheral)]
     (pass-> :log "Scanning" uuid)
-    (when (= "quipu" (:localName advertisement))
+    (when true
       (pass-> :log "Scanned" uuid)
       (.connect peripheral (fn [e]))
       (if-not ((keyword uuid) @peripherals)
@@ -109,7 +111,7 @@ characteristic data from the BLE devices.
                 (pass-> :log "Discovering characteristics for" device-key)
                 (.discoverCharacteristics
                   service
-                  #js [scratch-one scratch-two scratch-thr]
+                  #js [scratch-one scratch-two scratch-thr scratch-fou scratch-fiv]
                   (fn [err characteristics]
                     (pass-> :device
                             {:step            :discovered-characteristics
@@ -126,29 +128,42 @@ characteristic data from the BLE devices.
     (pass-> :device
             {:step           :request-notify
              :characteristic (aget characteristics 0)
-             :axis           :x
+             :number           1
              :device-key     device-key})
     (pass-> :device
             {:step           :request-notify
              :characteristic (aget characteristics 1)
-             :axis           :y
+             :number           2
              :device-key     device-key})
     (pass-> :device
             {:step           :request-notify
              :characteristic (aget characteristics 2)
-             :axis           :z
+             :number           3
+             :device-key     device-key})
+    (pass-> :device
+            {:step           :request-notify
+             :characteristic (aget characteristics 3)
+             :number           4
+             :device-key     device-key})
+    (pass-> :device
+            {:step           :request-notify
+             :characteristic (aget characteristics 4)
+             :number           5
              :device-key     device-key})))
 
 (defmethod chain :request-notify
-  [{:keys [characteristic axis device-key]}]
+  [{:keys [characteristic number device-key]}]
   (.on characteristic
        "read"
        (fn [raw _]
-         (let [data (+ (bit-shift-left (aget raw 1) 8) (aget raw 0))]
+         (let [data (+ (bit-shift-left (aget raw 0) 0)
+                       (bit-shift-left (aget raw 1) 8)
+                       (bit-shift-left (aget raw 2) 16)
+                       (bit-shift-left (aget raw 3) 24))]
            (pass-> :device
                    {:step       :pass-device-data
                     :data       data
-                    :axis       axis
+                    :number       number
                     :device-key device-key}))))
   (.notify characteristic
            true
@@ -165,9 +180,20 @@ characteristic data from the BLE devices.
     [curr]))
 
 (defmethod chain :pass-device-data
-  [{:keys [data axis device-key]}]
-  (swap! peripherals #(update-in % [device-key :sensors axis] (fn [prev] (sensor-history prev data))))
-  (osc/send-data device-key axis data))
+  [{:keys [data number device-key]}]
+  (swap! peripherals #(update-in % [device-key :sensors number] (fn [prev] (sensor-history prev data))))
+  (osc/send-data device-key number data))
+
+
+(defn when-on [state]
+  (if-let [on? (= "poweredOn" state)]
+    (do
+      (.startScanning noble js-bean-uuid false)
+
+    (js/setTimeout (fn []                                     ; Stops scanning after a set time. TO-DO: replace
+                     (pass-> :log "Stopped Scanning")
+                     (.stopScanning noble))
+                   12000))))
 
 (defn init-with-devices
   "When not running on sample data begins scanning for BLE Devices using node/noble"
@@ -175,12 +201,7 @@ characteristic data from the BLE devices.
   (pass-> :log "Starting with Devices, binding exit handler.")
   (.on js/process "SIGINT" exit-handler)
 
-  (.startScanning noble js-bean-uuid false)
-
-  (js/setTimeout (fn []                                     ; Stops scanning after a set time. TO-DO: replace
-                   (pass-> :log "Stopped Scanning")
-                   (.stopScanning noble))
-                 scan-timeout)
+  (.on noble "stateChange" when-on);
 
   (.on noble "discover" #(pass-> :device {:step       :discover ; Once any device is discovered, pass it to channel.
                                           :peripheral %})))
