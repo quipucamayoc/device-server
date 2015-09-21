@@ -6,7 +6,7 @@
                       :url  "http://www.eclipse.org/legal/epl-v10.html"}
 
             :dependencies [[org.clojure/clojure "1.8.0-alpha4"]
-                           [org.clojure/clojurescript "1.7.48"]
+                           [org.clojure/clojurescript "1.7.107"]
                            [com.quipucamayoc/carta "0.5.3"]
                            [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
 
@@ -14,7 +14,7 @@
                                  [osc-min "0.2.0"]
                                  [noble "1.0.2"]]}
 
-            :plugins [[lein-cljsbuild "1.0.6"]
+            :plugins [[lein-cljsbuild "1.1.0-SNAPSHOT"]
                       [lein-ancient "0.6.7"]
                       [lein-cljfmt "0.3.0"]
                       [lein-marginalia "0.8.0"]
